@@ -1,0 +1,18 @@
+# Railway config for the WEB service.
+# Railway deploys from your GitHub repo. This tells it to build with the
+# Dockerfile and how to run. Add the scraper as a SEPARATE Railway service
+# pointing at Dockerfile.scraper (set via that service's settings, or a second
+# railway.toml in a subdir — simplest is to configure it in the dashboard).
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+# Start command is the Dockerfile ENTRYPOINT; leave default.
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
+
+# Health: Railway pings the app; the home page returning 200 is enough.
+healthcheckPath = "/"
+healthcheckTimeout = 120

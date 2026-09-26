@@ -1,0 +1,24 @@
+# syntax=docker/dockerfile:1
+# Scraper service image. Same build, different entrypoint. On Railway this is a
+# SECOND service pointing at this Dockerfile (Dockerfile.scraper), sharing the
+# same repo and the same Postgres database as the web service.
+
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+COPY Clean4ork.sln ./
+COPY src/Clean4ork.Core/Clean4ork.Core.csproj      src/Clean4ork.Core/
+COPY src/Clean4ork.Data/Clean4ork.Data.csproj      src/Clean4ork.Data/
+COPY src/Clean4ork.Scraper/Clean4ork.Scraper.csproj src/Clean4ork.Scraper/
+COPY src/Clean4ork.Web/Clean4ork.Web.csproj        src/Clean4ork.Web/
+RUN dotnet restore src/Clean4ork.Scraper/Clean4ork.Scraper.csproj
+COPY . .
+RUN dotnet publish src/Clean4ork.Scraper/Clean4ork.Scraper.csproj \
+    -c Release -o /app /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/runtime:9.0 AS runtime
+WORKDIR /app
+COPY --from=build /app ./
+ENV DOTNET_ENVIRONMENT=Production
+# No command → runs as the always-on scheduled worker. To run a one-shot job,
+# override the container command, e.g.  dotnet Clean4ork.Scraper.dll crawl-zip 19120
+ENTRYPOINT ["dotnet", "Clean4ork.Scraper.dll"]

@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: clean4ork-db
+    environment:
+      POSTGRES_USER: clean4ork
+      POSTGRES_PASSWORD: clean4ork_dev
+      POSTGRES_DB: clean4ork
+    ports:
+      - "5432:5432"
+    volumes:
+      - clean4ork-pgdata:/var/lib/postgresql/data
+
+volumes:
+  clean4ork-pgdata:

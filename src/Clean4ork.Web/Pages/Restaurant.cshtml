@@ -1,0 +1,78 @@
+@page "/r/{jurisdiction}/{slug}"
+@using Clean4ork.Core.Domain
+@model RestaurantModel
+@{
+    var est = Model.Establishment!;
+    ViewData["Title"] = est.Name;
+}
+
+<article class="restaurant">
+    <header>
+        <h1>@est.Name</h1>
+        @if (!string.IsNullOrWhiteSpace(est.AddressLine1))
+        {
+            <p class="address">
+                @est.AddressLine1@(est.City is null ? "" : $", {est.City}") @est.State @est.PostalCode
+            </p>
+        }
+    </header>
+
+    @if (Model.Score is { } score && est.DataTier == DataTier.Scored)
+    {
+        <!-- SCORED tier: the Grade Card is the hero element. -->
+        <section class="grade-card" data-grade="@score.Grade">
+            <div class="grade-letter">@score.Grade</div>
+            <div class="grade-score">@score.Score<span>/100</span></div>
+            <p class="grade-asof">Clean4ork Score, as of @score.AsOf.ToString("MMMM d, yyyy")</p>
+        </section>
+
+        @if (score.Factors.Count > 0)
+        {
+            <section class="factors">
+                <h2>What affected this score</h2>
+                <table>
+                    <thead>
+                        <tr><th>Item</th><th>Inspected</th><th>Points</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var f in score.Factors.OrderByDescending(f => f.PointsLost))
+                        {
+                            <tr>
+                                <td>@f.Description <span class="code">(@f.ViolationCode)</span></td>
+                                <td>@f.InspectionDate.ToString("MMM d, yyyy")</td>
+                                <td>&minus;@f.PointsLost</td>
+                                <td>@(f.IsRepeat ? "repeat" : "")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </section>
+        }
+    }
+    else if (Model.Snapshot is { } snap && est.DataTier == DataTier.PassFail)
+    {
+        <!-- PASS/FAIL tier: NO score, NO grade letter. Date-forward, event-framed. -->
+        <section class="passfail-card freshness-@snap.Freshness.ToString().ToLowerInvariant()">
+            <p class="passfail-headline">@snap.Headline</p>
+            <p class="passfail-sub">@snap.SubText</p>
+        </section>
+        <p class="tier-note">
+            This area isn't graded yet. When detailed inspection reports become
+            available here, we'll show a full Clean4ork Score.
+        </p>
+    }
+    else
+    {
+        <section class="no-data">
+            <p>We don't have an inspection on record for this location yet.</p>
+        </section>
+    }
+
+    <footer class="record-link">
+        <p>
+            Clean4ork is a private company that reads public records. This is our
+            analysis of published inspection data, not an official health department
+            grade. See the official record for the authoritative report.
+        </p>
+    </footer>
+</article>

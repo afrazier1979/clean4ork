@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <UserSecretsId>clean4ork-web-local</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Clean4ork.Core\Clean4ork.Core.csproj" />
+    <ProjectReference Include="..\Clean4ork.Data\Clean4ork.Data.csproj" />
+  </ItemGroup>
+
+</Project>
