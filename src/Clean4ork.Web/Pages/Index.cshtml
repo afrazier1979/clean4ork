@@ -1,7 +1,7 @@
 @page
 @model IndexModel
 @{
-    ViewData["Title"] = "Clean4ork — Pennsylvania food inspections";
+    ViewData["Title"] = "Clean4ork \u2014 Pennsylvania food inspections";
 }
 <style>
   :root{--paper:#EFEBE1;--ink:#211E1A;--soft:#544C41;--faint:#8A8172;--panel:#F5F2EA;--line:#D3CBB8;
@@ -25,6 +25,10 @@
   .name{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:18px}
   .meta{font-size:13px;color:var(--faint)}
   .empty{padding:40px;text-align:center;color:var(--faint);border:1px dashed var(--line);border-radius:12px}
+  .pager{display:flex;justify-content:space-between;align-items:center;margin:18px 0 40px;font-size:14px}
+  .pager a{color:var(--ga);text-decoration:none;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+  .pager .off{color:var(--line);padding:8px 12px}
+  .where{color:var(--faint)}
 </style>
 
 <header><div class="wrap"><span class="mark">clean<b>4</b>ork</span></div></header>
@@ -35,7 +39,10 @@
     <button type="submit">Search</button>
   </form>
 
-  <div class="count">@Model.TotalCount result@(Model.TotalCount == 1 ? "" : "s")</div>
+  <div class="count">
+    @if (Model.TotalCount > 0) { <text>Showing @Model.FirstShown.ToString("N0")&ndash;@Model.LastShown.ToString("N0") of </text> }
+    @Model.TotalCount.ToString("N0") result@(Model.TotalCount == 1 ? "" : "s")
+  </div>
 
   @if (Model.Results.Count == 0)
   {
@@ -52,17 +59,27 @@
         }
         else
         {
-          <div class="chit">@(r.PassFailHeadline?.Length > 30 ? "Pass/ fail" : "Pass/ fail")</div>
+          <div class="chit">Pass/ fail</div>
         }
         <div>
           <div class="name">@r.Name</div>
           <div class="meta">
             @r.Address
-            @if (r.Tier == DataTier.Scored && r.Score is int sc) { <text> · Clean4ork Score @sc</text> }
-            else if (r.PassFailHeadline is not null) { <text> · @r.PassFailHeadline</text> }
+            @if (r.Tier == DataTier.Scored) { <text> &middot; Clean4ork grade @r.Grade</text> }
+            else if (r.PassFailHeadline is not null) { <text> &middot; @r.PassFailHeadline</text> }
           </div>
         </div>
       </a>
     }
+  }
+
+  @if (Model.TotalPages > 1)
+  {
+    var qs = string.IsNullOrWhiteSpace(Model.Q) ? "" : $"&Q={Uri.EscapeDataString(Model.Q)}";
+    <nav class="pager">
+      @if (Model.PageNumber > 1) { <a href="?page=@(Model.PageNumber - 1)@qs">&larr; Previous</a> } else { <span class="off">&larr; Previous</span> }
+      <span class="where">Page @Model.PageNumber.ToString("N0") of @Model.TotalPages.ToString("N0")</span>
+      @if (Model.PageNumber < Model.TotalPages) { <a href="?page=@(Model.PageNumber + 1)@qs">Next &rarr;</a> } else { <span class="off">Next &rarr;</span> }
+    </nav>
   }
 </div>

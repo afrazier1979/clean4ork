@@ -9,15 +9,29 @@ namespace Clean4ork.Web.Pages;
 
 /// <summary>
 /// Home / search page. Renders real establishments from the database. A scored
-/// establishment shows its computed grade; a pass/fail one shows the snapshot.
+/// establishment shows its computed letter grade; a pass/fail one shows the snapshot.
+///
+/// SCORE OBSCURITY: only the final letter grade leaves this page model. The raw
+/// numeric score is never placed in ResultRow, so it can't reach the HTML.
 /// </summary>
 public class IndexModel(AppDbContext db, IInspectionScorer scorer) : PageModel
 {
     [BindProperty(SupportsGet = true)]
     public string? Q { get; set; }
 
+    // Which page of results to show, read from ?page=N in the address bar.
+    // (Named PageNumber because "Page" is already a method on PageModel.)
+    [BindProperty(SupportsGet = true, Name = "page")]
+    public int PageNumber { get; set; } = 1;
+
+    public const int PageSize = 50;
+
     public IReadOnlyList<ResultRow> Results { get; private set; } = [];
     public int TotalCount { get; private set; }
+
+    public int TotalPages => Math.Max(1, (int)Math.Ceiling(TotalCount / (double)PageSize));
+    public int FirstShown => TotalCount == 0 ? 0 : (PageNumber - 1) * PageSize + 1;
+    public int LastShown => Math.Min(PageNumber * PageSize, TotalCount);
 
     public record ResultRow(
         string Jurisdiction,
@@ -26,7 +40,6 @@ public class IndexModel(AppDbContext db, IInspectionScorer scorer) : PageModel
         string? Address,
         DataTier Tier,
         char? Grade,
-        int? Score,
         string? PassFailHeadline);
 
     public async Task OnGetAsync(CancellationToken ct)
@@ -42,9 +55,14 @@ public class IndexModel(AppDbContext db, IInspectionScorer scorer) : PageModel
 
         TotalCount = await query.CountAsync(ct);
 
+        // Keep the page number in range (no page 0, no page past the end).
+        PageNumber = Math.Clamp(PageNumber, 1, TotalPages);
+
         var establishments = await query
             .OrderBy(e => e.Name)
-            .Take(50)
+            .ThenBy(e => e.Id) // tie-breaker so the order is stable between pages
+            .Skip((PageNumber - 1) * PageSize)
+            .Take(PageSize)
             .ToListAsync(ct);
 
         var rows = new List<ResultRow>(establishments.Count);
@@ -54,18 +72,18 @@ public class IndexModel(AppDbContext db, IInspectionScorer scorer) : PageModel
             {
                 var s = scorer.Score(e.Inspections, today);
                 rows.Add(new ResultRow(e.Jurisdiction, e.Slug, e.Name, e.AddressLine1,
-                    e.DataTier, s.Grade, s.Score, null));
+                    e.DataTier, s.Grade, null));
             }
             else if (e.DataTier == DataTier.PassFail)
             {
                 var snap = PassFailSnapshot.ForEstablishment(e, today);
                 rows.Add(new ResultRow(e.Jurisdiction, e.Slug, e.Name, e.AddressLine1,
-                    e.DataTier, null, null, snap.Headline));
+                    e.DataTier, null, snap.Headline));
             }
             else
             {
                 rows.Add(new ResultRow(e.Jurisdiction, e.Slug, e.Name, e.AddressLine1,
-                    e.DataTier, null, null, "No inspection on record"));
+                    e.DataTier, null, "No inspection on record"));
             }
         }
         Results = rows;
