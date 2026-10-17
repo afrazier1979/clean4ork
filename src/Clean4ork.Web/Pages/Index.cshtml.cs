@@ -21,7 +21,7 @@ public class IndexModel(AppDbContext db, IInspectionScorer scorer) : PageModel
 
     // Which page of results to show, read from ?page=N in the address bar.
     // (Named PageNumber because "Page" is already a method on PageModel.)
-    [BindProperty(SupportsGet = true, Name = "page")]
+    [BindProperty(SupportsGet = true, Name = "p")]
     public int PageNumber { get; set; } = 1;
 
     public const int PageSize = 50;

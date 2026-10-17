@@ -77,9 +77,9 @@
   {
     var qs = string.IsNullOrWhiteSpace(Model.Q) ? "" : $"&Q={Uri.EscapeDataString(Model.Q)}";
     <nav class="pager">
-      @if (Model.PageNumber > 1) { <a href="?page=@(Model.PageNumber - 1)@qs">&larr; Previous</a> } else { <span class="off">&larr; Previous</span> }
+      @if (Model.PageNumber > 1) { <a href="?p=@(Model.PageNumber - 1)@qs">&larr; Previous</a> } else { <span class="off">&larr; Previous</span> }
       <span class="where">Page @Model.PageNumber.ToString("N0") of @Model.TotalPages.ToString("N0")</span>
-      @if (Model.PageNumber < Model.TotalPages) { <a href="?page=@(Model.PageNumber + 1)@qs">Next &rarr;</a> } else { <span class="off">Next &rarr;</span> }
+      @if (Model.PageNumber < Model.TotalPages) { <a href="?p=@(Model.PageNumber + 1)@qs">Next &rarr;</a> } else { <span class="off">Next &rarr;</span> }
     </nav>
   }
 </div>
