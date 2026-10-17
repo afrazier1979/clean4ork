@@ -1,0 +1,11 @@
+# Railway config for the SCRAPER service(s).
+# Point the scraper service at this file under Settings > Config-as-code.
+# Start command and cron schedule are set per service in the dashboard.
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile.scraper"
+
+[deploy]
+# The scraper is a job that runs and exits, so don't restart it when it finishes.
+restartPolicyType = "never"
