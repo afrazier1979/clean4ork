@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@(ViewData["Title"] ?? "Clean4ork")</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Spline+Sans:wght@400;500&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --paper:#EFEBE1; --ink:#211E1A; --soft:#544C41; --faint:#8A8172;
+            --panel:#F5F2EA; --line:#D3CBB8; --field:#FBF9F3;
+            --ga:#2E6E67; --gb:#5E978B; --gc:#C7902F; --gd:#BE6A2E; --gf:#AB4632;
+        }
+        * { box-sizing:border-box }
+        body { margin:0; background:var(--paper); color:var(--ink); font-family:"Spline Sans",system-ui,sans-serif; line-height:1.5 }
+        a { color:inherit }
+        .wrap { max-width:860px; margin:0 auto; padding:0 20px }
+        .mono { font-family:"Spline Sans Mono",ui-monospace,monospace }
+
+        /* header + footer */
+        header.site { border-bottom:1px solid var(--line); padding:14px 0 }
+        .bar { display:flex; align-items:center; justify-content:space-between }
+        .mark { font-family:"Fraunces",Georgia,serif; font-weight:600; font-size:28px; text-decoration:none }
+        .mark b { color:var(--ga) }
+        header.site nav a { font-size:13px; color:var(--soft); text-decoration:none; margin-left:16px }
+        footer.site { border-top:1px solid var(--line); margin-top:48px; padding:20px 0 40px; font-size:12px; color:var(--faint) }
+
+        /* search + filters */
+        .search { display:flex; gap:10px; margin:22px 0 12px }
+        .search input[type=text] { flex:1; padding:12px 14px; border:1px solid var(--line); border-radius:10px; font:inherit; font-size:16px; background:var(--field) }
+        .btn { padding:12px 18px; border:0; border-radius:10px; background:var(--ga); color:#F4F1E8; font:inherit; font-size:15px; cursor:pointer }
+        .chips { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px }
+        .chips a { font-size:13px; padding:6px 12px; border:1px solid var(--line); border-radius:999px; background:var(--panel); color:var(--soft); text-decoration:none }
+        .chips a.on { background:var(--ga); border-color:var(--ga); color:#F4F1E8 }
+        .count { font-size:13px; color:var(--faint); margin-bottom:12px }
+
+        /* result cards */
+        .card { display:flex; gap:14px; align-items:center; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:10px; text-decoration:none }
+        .card:hover { border-color:var(--faint) }
+        .info { min-width:0 }
+        .name { font-family:"Fraunces",Georgia,serif; font-weight:600; font-size:18px; line-height:1.25 }
+        .meta { font-size:13px; color:var(--faint) }
+        .meta.mono { font-size:12px; margin-top:2px }
+
+        /* graded: the posted-in-the-window placard */
+        .placard { width:56px; height:64px; border-radius:9px; flex:none; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#F6F2E9; transform:rotate(-2deg); border:2px solid rgba(255,255,255,.35) }
+        .placard .pl-letter { font-family:"Fraunces",Georgia,serif; font-weight:600; font-size:28px; line-height:1 }
+        .placard .pl-cap { font-size:9px; letter-spacing:.08em; text-transform:uppercase; margin-top:2px }
+        .ga { background:var(--ga) } .gb { background:var(--gb) } .gc { background:var(--gc) } .gd { background:var(--gd) } .gf { background:var(--gf) }
+
+        /* pass/fail: the stamped chit (no letter, no number, ever) */
+        .chit { width:64px; height:64px; border-radius:9px; flex:none; border:1.5px dashed #B8AE98; background:#F0ECDF; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:4px; line-height:1.15 }
+        .chit .chit-res { font-size:11px; font-weight:500 }
+        .chit.pass .chit-res { color:var(--ga) }
+        .chit.fail .chit-res { color:var(--gf) }
+        .chit .chit-cap { font-size:9px; color:var(--faint); margin-top:3px; text-transform:uppercase; letter-spacing:.06em }
+
+        .empty { padding:40px; text-align:center; color:var(--faint); border:1px dashed var(--line); border-radius:12px }
+        .pager { display:flex; justify-content:space-between; align-items:center; margin:18px 0 0; font-size:14px }
+        .pager a { color:var(--ga); text-decoration:none; padding:8px 12px; border:1px solid var(--line); border-radius:10px; background:var(--panel) }
+        .pager .off { color:var(--line); padding:8px 12px }
+        .where { color:var(--faint) }
+
+        /* restaurant page */
+        .back { display:inline-block; margin:20px 0 10px; font-size:13px; color:var(--soft); text-decoration:none }
+        .hero { display:flex; gap:22px; align-items:center; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:22px }
+        .hero .placard { width:96px; height:112px; transform:rotate(-3deg) }
+        .hero .placard .pl-letter { font-size:54px }
+        .hero .placard .pl-cap { font-size:11px }
+        .hero .chit { width:112px; height:112px }
+        .hero .chit .chit-res { font-size:15px }
+        .hero .chit .chit-cap { font-size:10px }
+        .hero h1 { font-family:"Fraunces",Georgia,serif; font-weight:600; font-size:30px; line-height:1.15; margin:0 0 6px }
+        .tier { display:inline-block; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--soft); border:1px solid var(--line); border-radius:999px; padding:3px 10px; margin-top:10px; background:var(--paper) }
+        .section { margin-top:26px }
+        .section h2 { font-family:"Fraunces",Georgia,serif; font-weight:600; font-size:20px; margin:0 0 10px }
+        .note { font-size:14px; color:var(--soft) }
+        table.factors { width:100%; border-collapse:separate; border-spacing:0; background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden; font-size:14px }
+        table.factors th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--faint); font-weight:500; padding:10px 12px; border-bottom:1px solid var(--line) }
+        table.factors td { padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top }
+        table.factors tr:last-child td { border-bottom:0 }
+        .code { color:var(--faint); font-size:12px }
+        .badge-repeat { font-size:11px; color:var(--gd); border:1px solid var(--gd); border-radius:999px; padding:1px 8px; white-space:nowrap }
+        .pf-card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 18px }
+        .pf-card .h { font-family:"Fraunces",Georgia,serif; font-weight:600; font-size:18px; margin:0 0 4px }
+
+        @@media (max-width:560px) {
+            .hero { flex-direction:column; align-items:flex-start }
+            .search { flex-direction:column }
+        }
+    </style>
+</head>
+<body>
+    <header class="site">
+        <div class="wrap bar">
+            <a class="mark" href="/">clean<b>4</b>ork</a>
+            <nav><a href="/">Search</a></nav>
+        </div>
+    </header>
+
+    <main>@RenderBody()</main>
+
+    <footer class="site">
+        <div class="wrap">
+            Clean4ork is a private company that reads public records. Grades are our analysis of
+            published inspection data, not official health department grades.
+        </div>
+    </footer>
+</body>
+</html>

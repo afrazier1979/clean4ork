@@ -3,76 +3,84 @@
 @model RestaurantModel
 @{
     var est = Model.Establishment!;
-    ViewData["Title"] = est.Name;
+    ViewData["Title"] = $"{est.Name} \u2014 Clean4ork";
 }
 
-<article class="restaurant">
-    <header>
-        <h1>@est.Name</h1>
-        @if (!string.IsNullOrWhiteSpace(est.AddressLine1))
-        {
-            <p class="address">
-                @est.AddressLine1@(est.City is null ? "" : $", {est.City}") @est.State @est.PostalCode
-            </p>
-        }
-    </header>
+<div class="wrap">
+  <a class="back" href="/">&larr; Back to search</a>
 
-    @if (Model.Score is { } score && est.DataTier == DataTier.Scored)
+  <section class="hero">
+    @if (!string.IsNullOrEmpty(Model.GradeLetter))
     {
-        <!-- SCORED tier: the Grade Card is the hero element. -->
-        <section class="grade-card" data-grade="@score.Grade">
-            <div class="grade-letter">@score.Grade</div>
-            <div class="grade-score">@score.Score<span>/100</span></div>
-            <p class="grade-asof">Clean4ork Score, as of @score.AsOf.ToString("MMMM d, yyyy")</p>
-        </section>
-
-        @if (score.Factors.Count > 0)
-        {
-            <section class="factors">
-                <h2>What affected this score</h2>
-                <table>
-                    <thead>
-                        <tr><th>Item</th><th>Inspected</th><th>Points</th><th></th></tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var f in score.Factors.OrderByDescending(f => f.PointsLost))
-                        {
-                            <tr>
-                                <td>@f.Description <span class="code">(@f.ViolationCode)</span></td>
-                                <td>@f.InspectionDate.ToString("MMM d, yyyy")</td>
-                                <td>&minus;@f.PointsLost</td>
-                                <td>@(f.IsRepeat ? "repeat" : "")</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </section>
-        }
+      <div class="placard g@(Model.GradeLetter.ToLowerInvariant())"><span class="pl-letter">@Model.GradeLetter</span><span class="pl-cap">Grade</span></div>
     }
-    else if (Model.Snapshot is { } snap && est.DataTier == DataTier.PassFail)
+    else if (est.DataTier == DataTier.PassFail && est.SnapshotPassed is bool passed)
     {
-        <!-- PASS/FAIL tier: NO score, NO grade letter. Date-forward, event-framed. -->
-        <section class="passfail-card freshness-@snap.Freshness.ToString().ToLowerInvariant()">
-            <p class="passfail-headline">@snap.Headline</p>
-            <p class="passfail-sub">@snap.SubText</p>
-        </section>
-        <p class="tier-note">
-            This area isn't graded yet. When detailed inspection reports become
-            available here, we'll show a full Clean4ork Score.
-        </p>
+      <div class="chit @(passed ? "pass" : "fail")"><span class="chit-res">@(passed ? "Passed" : "Out of compliance")</span><span class="chit-cap">State record</span></div>
     }
     else
     {
-        <section class="no-data">
-            <p>We don't have an inspection on record for this location yet.</p>
-        </section>
+      <div class="chit"><span class="chit-cap">No record</span></div>
     }
 
-    <footer class="record-link">
-        <p>
-            Clean4ork is a private company that reads public records. This is our
-            analysis of published inspection data, not an official health department
-            grade. See the official record for the authoritative report.
-        </p>
-    </footer>
-</article>
+    <div class="info">
+      <h1>@est.Name</h1>
+      @if (Model.AddressLine is not null) { <div class="meta">@Model.AddressLine</div> }
+      <span class="tier">
+        @(est.DataTier == DataTier.Scored ? "Graded from city inspection reports"
+          : est.DataTier == DataTier.PassFail ? "State pass/fail record"
+          : "No inspection data")
+      </span>
+    </div>
+  </section>
+
+  @if (!string.IsNullOrEmpty(Model.GradeLetter))
+  {
+    <p class="note" style="margin-top:12px">Clean4ork grade as of @Model.GradeAsOf.</p>
+
+    <section class="section">
+      <h2>Violations on record</h2>
+      @if (Model.Factors.Count == 0)
+      {
+        <p class="note">No violations on recent inspections.</p>
+      }
+      else
+      {
+        <table class="factors">
+          <thead><tr><th>Violation</th><th>Inspected</th><th></th></tr></thead>
+          <tbody>
+            @foreach (var f in Model.Factors)
+            {
+              <tr>
+                <td>@f.Description <span class="code mono">(@f.Code)</span></td>
+                <td class="mono">@f.Inspected</td>
+                <td>@if (f.IsRepeat) { <span class="badge-repeat">Repeat</span> }</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </section>
+  }
+  else if (Model.Snapshot is { } snap)
+  {
+    <section class="section">
+      <div class="pf-card freshness-@snap.Freshness.ToString().ToLowerInvariant()">
+        <p class="h">@snap.Headline</p>
+        <p class="note" style="margin:0">@snap.SubText</p>
+      </div>
+      <p class="note" style="margin-top:12px">
+        This area isn't graded yet. When detailed inspection reports are available here,
+        we'll show a full Clean4ork grade.
+      </p>
+    </section>
+  }
+  else
+  {
+    <section class="section"><div class="empty">We don't have an inspection on record for this location yet.</div></section>
+  }
+
+  <p class="note" style="margin-top:26px;font-size:13px">
+    See the official health department record for the authoritative report.
+  </p>
+</div>

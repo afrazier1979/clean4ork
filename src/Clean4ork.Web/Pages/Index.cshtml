@@ -3,41 +3,22 @@
 @{
     ViewData["Title"] = "Clean4ork \u2014 Pennsylvania food inspections";
 }
-<style>
-  :root{--paper:#EFEBE1;--ink:#211E1A;--soft:#544C41;--faint:#8A8172;--panel:#F5F2EA;--line:#D3CBB8;
-    --ga:#2E6E67;--gb:#5E978B;--gc:#C7902F;--gd:#BE6A2E;--gf:#AB4632;}
-  body{margin:0;background:var(--paper);color:var(--ink);font-family:"Spline Sans",system-ui,sans-serif}
-  .wrap{max-width:820px;margin:0 auto;padding:0 20px}
-  header{border-bottom:1px solid var(--line);padding:18px 0}
-  .mark{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:28px}
-  .mark b{color:var(--ga)}
-  form{display:flex;gap:10px;margin:22px 0}
-  input[name=Q]{flex:1;padding:12px 14px;border:1px solid var(--line);border-radius:10px;font-size:16px;background:#FBF9F3}
-  button{padding:12px 18px;border:0;border-radius:10px;background:var(--ga);color:#F4F1E8;font-size:15px;cursor:pointer}
-  .count{font-size:13px;color:var(--faint);margin-bottom:12px}
-  .card{display:flex;gap:14px;align-items:center;background:var(--panel);border:1px solid var(--line);
-    border-radius:12px;padding:12px 14px;margin-bottom:10px;text-decoration:none;color:inherit}
-  .badge{width:52px;height:52px;border-radius:10px;display:flex;align-items:center;justify-content:center;
-    font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:26px;color:#F6F2E9;flex:none}
-  .ga{background:var(--ga)}.gb{background:var(--gb)}.gc{background:var(--gc)}.gd{background:var(--gd)}.gf{background:var(--gf)}
-  .chit{width:52px;height:52px;border-radius:10px;border:1px dashed var(--line);flex:none;display:flex;
-    align-items:center;justify-content:center;font-size:11px;color:var(--soft);text-align:center;background:#F0ECDF}
-  .name{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:18px}
-  .meta{font-size:13px;color:var(--faint)}
-  .empty{padding:40px;text-align:center;color:var(--faint);border:1px dashed var(--line);border-radius:12px}
-  .pager{display:flex;justify-content:space-between;align-items:center;margin:18px 0 40px;font-size:14px}
-  .pager a{color:var(--ga);text-decoration:none;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
-  .pager .off{color:var(--line);padding:8px 12px}
-  .where{color:var(--faint)}
-</style>
-
-<header><div class="wrap"><span class="mark">clean<b>4</b>ork</span></div></header>
 
 <div class="wrap">
-  <form method="get">
-    <input name="Q" value="@Model.Q" placeholder="Search a restaurant by name" />
-    <button type="submit">Search</button>
+  <form class="search" method="get" action="/">
+    <input type="text" name="Q" value="@Model.Q" placeholder="Search a restaurant by name" />
+    @if (!string.IsNullOrWhiteSpace(Model.Area))
+    {
+      <input type="hidden" name="area" value="@Model.Area" />
+    }
+    <button class="btn" type="submit">Search</button>
   </form>
+
+  <div class="chips">
+    <a class="@(string.IsNullOrWhiteSpace(Model.Area) ? "on" : "")" href="@Model.Link(1, "")">All of PA</a>
+    <a class="@(Model.Area == "philly" ? "on" : "")" href="@Model.Link(1, "philly")">Philadelphia</a>
+    <a class="@(Model.Area == "pa" ? "on" : "")" href="@Model.Link(1, "pa")">Rest of PA</a>
+  </div>
 
   <div class="count">
     @if (Model.TotalCount > 0) { <text>Showing @Model.FirstShown.ToString("N0")&ndash;@Model.LastShown.ToString("N0") of </text> }
@@ -46,7 +27,7 @@
 
   @if (Model.Results.Count == 0)
   {
-    <div class="empty">No restaurants found yet. Once the scraper and pass/fail seed have run, results appear here.</div>
+    <div class="empty">No restaurants match that search.</div>
   }
   else
   {
@@ -55,18 +36,26 @@
       <a class="card" href="/r/@r.Jurisdiction/@r.Slug">
         @if (r.Tier == DataTier.Scored && r.Grade is char g)
         {
-          <div class="badge g@(char.ToLower(g))">@g</div>
+          <div class="placard g@(char.ToLowerInvariant(g))"><span class="pl-letter">@g</span><span class="pl-cap">Grade</span></div>
+        }
+        else if (r.Passed is bool passed)
+        {
+          <div class="chit @(passed ? "pass" : "fail")"><span class="chit-res">@(passed ? "Passed" : "Out of compliance")</span><span class="chit-cap">State record</span></div>
         }
         else
         {
-          <div class="chit">Pass/ fail</div>
+          <div class="chit"><span class="chit-cap">No record</span></div>
         }
-        <div>
+        <div class="info">
           <div class="name">@r.Name</div>
           <div class="meta">
             @r.Address
-            @if (r.Tier == DataTier.Scored) { <text> &middot; Clean4ork grade @r.Grade</text> }
-            else if (r.PassFailHeadline is not null) { <text> &middot; @r.PassFailHeadline</text> }
+            @if (r.Place is not null) { <text> &middot; @r.Place</text> }
+          </div>
+          <div class="meta mono">
+            @if (r.Tier == DataTier.Scored) { <text>Graded from city inspection reports</text> }
+            else if (r.InspectedOn is not null) { <text>State inspection @r.InspectedOn</text> }
+            else { <text>No inspection on record</text> }
           </div>
         </div>
       </a>
@@ -75,11 +64,10 @@
 
   @if (Model.TotalPages > 1)
   {
-    var qs = string.IsNullOrWhiteSpace(Model.Q) ? "" : $"&Q={Uri.EscapeDataString(Model.Q)}";
     <nav class="pager">
-      @if (Model.PageNumber > 1) { <a href="?p=@(Model.PageNumber - 1)@qs">&larr; Previous</a> } else { <span class="off">&larr; Previous</span> }
+      @if (Model.PageNumber > 1) { <a href="@Model.Link(Model.PageNumber - 1)">&larr; Previous</a> } else { <span class="off">&larr; Previous</span> }
       <span class="where">Page @Model.PageNumber.ToString("N0") of @Model.TotalPages.ToString("N0")</span>
-      @if (Model.PageNumber < Model.TotalPages) { <a href="?p=@(Model.PageNumber + 1)@qs">Next &rarr;</a> } else { <span class="off">Next &rarr;</span> }
+      @if (Model.PageNumber < Model.TotalPages) { <a href="@Model.Link(Model.PageNumber + 1)">Next &rarr;</a> } else { <span class="off">Next &rarr;</span> }
     </nav>
   }
 </div>
