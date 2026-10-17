@@ -70,7 +70,7 @@ public sealed class PaOpenDataFacilitySource(
         public const string InspectionReason = "inspection_reason_type";
         public const string OverallCompliance = "overall_compliance";
         // Socrata Point column: GeoJSON { "type":"Point", "coordinates":[lon,lat] }.
-        public const string Location = "georeferenced_latitude_and_longitude";
+        public const string Location = "geocoded_column";
     }
 
     public string SourceName => "pa-open-data";
