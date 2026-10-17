@@ -35,36 +35,76 @@ public sealed class IngestService(
     /// Seed the statewide pass/fail tier from the open-data API. No scraping,
     /// no parser — just an API pull. Never downgrades a Scored establishment.
     /// </summary>
-    public async Task SeedPassFailAsync(CancellationToken ct)
+        public async Task SeedPassFailAsync(CancellationToken ct)
     {
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
+        // The open-data feed lists a facility once per inspection, so the same
+        // restaurant can appear many times. Track rows touched since the last save
+        // so a repeat updates the pending row instead of inserting a duplicate.
+        var pending = new Dictionary<(string, string), Establishment>();
+
         var n = 0;
+        var added = 0;
         await foreach (var incoming in facilityIndex.EnumerateEstablishmentsAsync(ct))
         {
-            var existing = await db.Establishments.FirstOrDefaultAsync(e =>
-                e.Jurisdiction == incoming.Jurisdiction &&
-                e.SourceFacilityId == incoming.SourceFacilityId, ct);
+            // Name + ZIP is not unique (two Subways in one ZIP), so add a short,
+            // stable suffix from the synthetic facility id to keep slugs unique.
+            var id = incoming.SourceFacilityId;
+            incoming.Slug = $"{incoming.Slug}-{id[^8..]}";
 
-            if (existing is null)
+            var key = (incoming.Jurisdiction, id);
+
+            if (pending.TryGetValue(key, out var queued))
             {
-                db.Establishments.Add(incoming); // already PassFail
+                RefreshSnapshot(queued, incoming);
             }
-            else if (existing.DataTier != DataTier.Scored)
+            else
             {
-                // refresh snapshot in place; never touch a Scored row
-                existing.SnapshotInspectionDate = incoming.SnapshotInspectionDate;
-                existing.SnapshotPassed = incoming.SnapshotPassed;
-                existing.SnapshotInspectionReason = incoming.SnapshotInspectionReason;
-                existing.Location ??= incoming.Location;
-                existing.LastScrapedAt = DateTimeOffset.UtcNow;
+                var existing = await db.Establishments.FirstOrDefaultAsync(e =>
+                    e.Jurisdiction == incoming.Jurisdiction &&
+                    e.SourceFacilityId == id, ct);
+
+                if (existing is null)
+                {
+                    db.Establishments.Add(incoming); // already PassFail
+                    pending[key] = incoming;
+                    added++;
+                }
+                else if (existing.DataTier != DataTier.Scored)
+                {
+                    // never touch a Scored row
+                    RefreshSnapshot(existing, incoming);
+                    pending[key] = existing;
+                }
             }
 
-            if (++n % 500 == 0) await db.SaveChangesAsync(ct);
+            if (++n % 500 == 0)
+            {
+                await db.SaveChangesAsync(ct);
+                db.ChangeTracker.Clear();
+                pending.Clear();
+                logger.LogInformation("...{N} rows processed ({Added} new restaurants)", n, added);
+            }
         }
         await db.SaveChangesAsync(ct);
-        logger.LogInformation("Pass/fail seed complete: {N} rows processed", n);
+        logger.LogInformation("Pass/fail seed complete: {N} rows processed, {Added} new restaurants", n, added);
+    }
+
+    private static void RefreshSnapshot(Establishment target, Establishment incoming)
+    {
+        target.Location ??= incoming.Location;
+
+        // Only move the snapshot forward in time; an older row never overwrites a newer one.
+        if (target.SnapshotInspectionDate is { } current &&
+            (incoming.SnapshotInspectionDate is null || incoming.SnapshotInspectionDate <= current))
+            return;
+
+        target.SnapshotInspectionDate = incoming.SnapshotInspectionDate;
+        target.SnapshotPassed = incoming.SnapshotPassed;
+        target.SnapshotInspectionReason = incoming.SnapshotInspectionReason;
+        target.LastScrapedAt = DateTimeOffset.UtcNow;
     }
 
     /// <summary>
