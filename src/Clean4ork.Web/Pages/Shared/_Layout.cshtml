@@ -1,112 +1,205 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>@(ViewData["Title"] ?? "Clean4ork")</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Spline+Sans:wght@400;500&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet" />
-    <style>
-        :root {
-            --paper:#EFEBE1; --ink:#211E1A; --soft:#544C41; --faint:#8A8172;
-            --panel:#F5F2EA; --line:#D3CBB8; --field:#FBF9F3;
-            --ga:#2E6E67; --gb:#5E978B; --gc:#C7902F; --gd:#BE6A2E; --gf:#AB4632;
-        }
-        * { box-sizing:border-box }
-        body { margin:0; background:var(--paper); color:var(--ink); font-family:"Spline Sans",system-ui,sans-serif; line-height:1.5 }
-        a { color:inherit }
-        .wrap { max-width:860px; margin:0 auto; padding:0 20px }
-        .mono { font-family:"Spline Sans Mono",ui-monospace,monospace }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>@(ViewData["Title"] ?? "Clean4ork")</title>
+<meta name="theme-color" content="#2E6E67" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spline+Sans:wght@400;500;600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink:#211E1A; --ink-soft:#544C41; --ink-faint:#8A8172;
+    --paper:#EFEBE1; --paper-2:#E7E2D5; --panel:#F5F2EA;
+    --line:#D3CBB8; --line-2:#C2B9A2;
+    --g-a:#2E6E67; --g-b:#5E978B; --g-c:#C7902F; --g-d:#BE6A2E; --g-f:#AB4632;
+    --stamp:#2F585A;
+    --radius:14px;
+    --shadow:0 1px 0 rgba(33,30,26,.04), 0 10px 24px -14px rgba(33,30,26,.35);
+    --shadow-lift:0 2px 0 rgba(33,30,26,.05), 0 22px 40px -18px rgba(33,30,26,.45);
+    --display:"Fraunces",Georgia,serif;
+    --body:"Spline Sans",system-ui,-apple-system,sans-serif;
+    --mono:"Spline Sans Mono",ui-monospace,SFMono-Regular,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:var(--body); color:var(--ink); background:var(--paper);
+    background-image:radial-gradient(rgba(33,30,26,.022) 1px, transparent 1px);
+    background-size:4px 4px;
+    -webkit-font-smoothing:antialiased; line-height:1.45;
+  }
+  .wrap{max-width:1240px; margin:0 auto; padding:0 22px}
 
-        /* header + footer */
-        header.site { border-bottom:1px solid var(--line); padding:14px 0 }
-        .bar { display:flex; align-items:center; justify-content:space-between }
-        .mark { font-family:"Fraunces",Georgia,serif; font-weight:600; font-size:28px; text-decoration:none }
-        .mark b { color:var(--ga) }
-        header.site nav a { font-size:13px; color:var(--soft); text-decoration:none; margin-left:16px }
-        footer.site { border-top:1px solid var(--line); margin-top:48px; padding:20px 0 40px; font-size:12px; color:var(--faint) }
+  /* ---------- masthead ---------- */
+  header.masthead{border-bottom:1px solid var(--line-2); background:linear-gradient(#F3F0E8,#EDE9DF)}
+  .masthead .row{display:flex; align-items:baseline; justify-content:space-between; padding:18px 0 16px; flex-wrap:wrap; gap:10px}
+  .brand{display:flex; align-items:baseline; gap:12px; text-decoration:none; color:inherit}
+  .brand .mark{font-family:var(--display); font-weight:600; font-size:30px; letter-spacing:-.02em; font-variation-settings:"opsz" 120; color:var(--ink)}
+  .brand .mark b{color:var(--g-a)}
+  .brand .tag{font-family:var(--mono); font-size:11px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.14em}
+  nav.top a{font-size:13.5px; color:var(--ink-soft); text-decoration:none; margin-left:22px; padding-bottom:3px; border-bottom:1.5px solid transparent}
+  nav.top a:hover{color:var(--ink); border-color:var(--g-a)}
 
-        /* search + filters */
-        .search { display:flex; gap:10px; margin:22px 0 12px }
-        .search input[type=text] { flex:1; padding:12px 14px; border:1px solid var(--line); border-radius:10px; font:inherit; font-size:16px; background:var(--field) }
-        .btn { padding:12px 18px; border:0; border-radius:10px; background:var(--ga); color:#F4F1E8; font:inherit; font-size:15px; cursor:pointer }
-        .chips { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px }
-        .chips a { font-size:13px; padding:6px 12px; border:1px solid var(--line); border-radius:999px; background:var(--panel); color:var(--soft); text-decoration:none }
-        .chips a.on { background:var(--ga); border-color:var(--ga); color:#F4F1E8 }
-        .count { font-size:13px; color:var(--faint); margin-bottom:12px }
+  /* ---------- search bar ---------- */
+  .searchbar{border-bottom:1px solid var(--line); background:var(--panel)}
+  .searchbar .inner{display:flex; gap:26px; align-items:flex-end; padding:16px 0; flex-wrap:wrap}
+  .field{display:flex; flex-direction:column; gap:6px; margin:0}
+  .field label{font-family:var(--mono); font-size:10.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--ink-faint)}
+  .field .control{display:flex; align-items:center; gap:8px; background:#FBF9F3; border:1px solid var(--line-2); border-radius:10px; padding:7px 8px 7px 12px; min-width:230px}
+  .field .control svg{flex:none}
+  .field input{border:0; background:transparent; font-family:var(--body); font-size:15px; color:var(--ink); width:100%; outline:none}
+  .field input::placeholder{color:var(--ink-faint)}
+  .searchfield .control{min-width:340px}
+  .go-btn{flex:none; border:0; background:var(--g-a); color:#F4F1E8; border-radius:7px; padding:6px 12px; font-family:var(--body); font-size:13px; cursor:pointer}
+  .go-btn:hover{filter:brightness(1.06)}
 
-        /* result cards */
-        .card { display:flex; gap:14px; align-items:center; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:10px; text-decoration:none }
-        .card:hover { border-color:var(--faint) }
-        .info { min-width:0 }
-        .name { font-family:"Fraunces",Georgia,serif; font-weight:600; font-size:18px; line-height:1.25 }
-        .meta { font-size:13px; color:var(--faint) }
-        .meta.mono { font-size:12px; margin-top:2px }
+  .radius{display:flex; border:1px solid var(--line-2); border-radius:10px; overflow:hidden; background:#FBF9F3}
+  .radius a{font-family:var(--mono); font-size:13px; letter-spacing:.02em; color:var(--ink-soft); text-decoration:none; padding:10px 15px}
+  .radius a + a{border-left:1px solid var(--line-2)}
+  .radius a.on{background:var(--g-a); color:#F4F1E8}
+  .radius a:hover:not(.on){background:#F0ECE1}
 
-        /* graded: the posted-in-the-window placard */
-        .placard { width:56px; height:64px; border-radius:9px; flex:none; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#F6F2E9; transform:rotate(-2deg); border:2px solid rgba(255,255,255,.35) }
-        .placard .pl-letter { font-family:"Fraunces",Georgia,serif; font-weight:600; font-size:28px; line-height:1 }
-        .placard .pl-cap { font-size:9px; letter-spacing:.08em; text-transform:uppercase; margin-top:2px }
-        .ga { background:var(--ga) } .gb { background:var(--gb) } .gc { background:var(--gc) } .gd { background:var(--gd) } .gf { background:var(--gf) }
+  .filters{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .chip{font-family:var(--mono); font-size:11.5px; letter-spacing:.02em; border:1px solid var(--line-2); background:#FBF9F3; color:var(--ink-soft); padding:7px 12px; border-radius:999px; text-decoration:none; user-select:none}
+  .chip.tier.on{background:var(--stamp); border-color:var(--stamp); color:#EFF3F0}
 
-        /* pass/fail: the stamped chit (no letter, no number, ever) */
-        .chit { width:64px; height:64px; border-radius:9px; flex:none; border:1.5px dashed #B8AE98; background:#F0ECDF; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:4px; line-height:1.15 }
-        .chit .chit-res { font-size:11px; font-weight:500 }
-        .chit.pass .chit-res { color:var(--ga) }
-        .chit.fail .chit-res { color:var(--gf) }
-        .chit .chit-cap { font-size:9px; color:var(--faint); margin-top:3px; text-transform:uppercase; letter-spacing:.06em }
+  .count{font-family:var(--mono); font-size:12px; color:var(--ink-faint); margin-left:auto; white-space:nowrap}
 
-        .empty { padding:40px; text-align:center; color:var(--faint); border:1px dashed var(--line); border-radius:12px }
-        .pager { display:flex; justify-content:space-between; align-items:center; margin:18px 0 0; font-size:14px }
-        .pager a { color:var(--ga); text-decoration:none; padding:8px 12px; border:1px solid var(--line); border-radius:10px; background:var(--panel) }
-        .pager .off { color:var(--line); padding:8px 12px }
-        .where { color:var(--faint) }
+  /* ---------- main split ---------- */
+  main{padding:22px 0 60px}
+  .split{display:grid; grid-template-columns:minmax(360px,440px) 1fr; gap:26px; align-items:start}
 
-        /* restaurant page */
-        .back { display:inline-block; margin:20px 0 10px; font-size:13px; color:var(--soft); text-decoration:none }
-        .hero { display:flex; gap:22px; align-items:center; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:22px }
-        .hero .placard { width:96px; height:112px; transform:rotate(-3deg) }
-        .hero .placard .pl-letter { font-size:54px }
-        .hero .placard .pl-cap { font-size:11px }
-        .hero .chit { width:112px; height:112px }
-        .hero .chit .chit-res { font-size:15px }
-        .hero .chit .chit-cap { font-size:10px }
-        .hero h1 { font-family:"Fraunces",Georgia,serif; font-weight:600; font-size:30px; line-height:1.15; margin:0 0 6px }
-        .tier { display:inline-block; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--soft); border:1px solid var(--line); border-radius:999px; padding:3px 10px; margin-top:10px; background:var(--paper) }
-        .section { margin-top:26px }
-        .section h2 { font-family:"Fraunces",Georgia,serif; font-weight:600; font-size:20px; margin:0 0 10px }
-        .note { font-size:14px; color:var(--soft) }
-        table.factors { width:100%; border-collapse:separate; border-spacing:0; background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden; font-size:14px }
-        table.factors th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--faint); font-weight:500; padding:10px 12px; border-bottom:1px solid var(--line) }
-        table.factors td { padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top }
-        table.factors tr:last-child td { border-bottom:0 }
-        .code { color:var(--faint); font-size:12px }
-        .badge-repeat { font-size:11px; color:var(--gd); border:1px solid var(--gd); border-radius:999px; padding:1px 8px; white-space:nowrap }
-        .pf-card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 18px }
-        .pf-card .h { font-family:"Fraunces",Georgia,serif; font-weight:600; font-size:18px; margin:0 0 4px }
+  .results{display:flex; flex-direction:column; gap:14px; max-height:calc(100vh - 210px); overflow:auto; padding:2px 6px 2px 2px; scrollbar-width:thin}
+  .results::-webkit-scrollbar{width:8px}
+  .results::-webkit-scrollbar-thumb{background:var(--line-2); border-radius:8px}
 
-        @@media (max-width:560px) {
-            .hero { flex-direction:column; align-items:flex-start }
-            .search { flex-direction:column }
-        }
-    </style>
+  .card{display:grid; grid-template-columns:auto 1fr; gap:16px; align-items:center; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:14px 16px; box-shadow:var(--shadow); transition:transform .15s ease, box-shadow .15s ease; color:inherit; text-decoration:none}
+  .card:hover{transform:translateY(-2px); box-shadow:var(--shadow-lift)}
+  .card:focus-visible{outline:2.5px solid var(--g-a); outline-offset:2px}
+  .card .body{min-width:0}
+  .card .body h3{font-family:var(--display); font-weight:600; font-size:19px; margin:0 0 2px; letter-spacing:-.01em; font-variation-settings:"opsz" 40}
+  .card .body .meta{font-family:var(--mono); font-size:11.5px; color:var(--ink-faint); display:flex; gap:10px; flex-wrap:wrap}
+  .card .body .line{font-size:13px; color:var(--ink-soft); margin:5px 0 0}
+
+  /* the placard (graded): posted-in-the-window feel. Letter only, never a number. */
+  .placard{width:76px; height:88px; border-radius:10px; position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#F6F2E9;
+    box-shadow:inset 0 0 0 3px rgba(255,255,255,.28), inset 0 0 0 4px rgba(0,0,0,.06), var(--shadow); transform:rotate(-2deg)}
+  .placard::before{content:""; position:absolute; top:7px; width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,.55); box-shadow:0 0 0 2px rgba(0,0,0,.05)}
+  .placard .g{font-family:var(--display); font-weight:600; font-size:44px; line-height:1; font-variation-settings:"opsz" 144; margin-top:6px}
+  .placard .s{font-family:var(--mono); font-size:9.5px; letter-spacing:.12em; text-transform:uppercase; opacity:.9; margin-top:3px}
+  .g-a{background:var(--g-a)} .g-b{background:var(--g-b)} .g-c{background:var(--g-c)} .g-d{background:var(--g-d)} .g-f{background:var(--g-f)}
+
+  /* the chit (pass/fail): deliberately NOT a grade. Stamped ticket, no letter, no number. */
+  .chit{width:76px; height:88px; border-radius:10px; position:relative; background:#F0ECDF; border:1px dashed var(--line-2); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; box-shadow:var(--shadow)}
+  .chit .stamp{font-family:var(--mono); font-size:10.5px; font-weight:500; letter-spacing:.06em; text-transform:uppercase; border:1.5px solid currentColor; border-radius:5px; padding:4px 7px; transform:rotate(-6deg); line-height:1.15}
+  .chit.pass{color:var(--g-a)} .chit.fail{color:var(--g-d)} .chit.unknown{color:var(--ink-faint)}
+  .chit .date{font-family:var(--mono); font-size:9.5px; color:var(--ink-faint); margin-top:7px}
+
+  .tierflag{font-family:var(--mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint)}
+
+  .pager{display:flex; justify-content:space-between; align-items:center; padding:4px 2px; font-family:var(--mono); font-size:12px}
+  .pager a{color:var(--g-a); text-decoration:none; padding:7px 12px; border:1px solid var(--line-2); border-radius:9px; background:#FBF9F3}
+  .pager a:hover{background:#EFEADE}
+  .pager .off{color:var(--line-2); padding:7px 12px}
+  .where{color:var(--ink-faint)}
+
+  /* ---------- map card (placeholder until the live map lands) ---------- */
+  .mapcard{position:sticky; top:16px; background:var(--panel); border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow); overflow:hidden}
+  .mapcard .caption{display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--line)}
+  .mapcard .caption h2{font-family:var(--display); font-weight:600; font-size:16px; margin:0; letter-spacing:-.01em}
+  .mapcard .caption .legend{display:flex; gap:12px; align-items:center; font-family:var(--mono); font-size:10.5px; color:var(--ink-faint)}
+  .legend .sw{display:inline-flex; align-items:center; gap:5px}
+  .legend .dot{width:9px; height:9px; border-radius:50%; display:inline-block}
+  .map-placeholder{height:560px; display:flex; align-items:center; justify-content:center; text-align:center; color:var(--ink-faint);
+    background-color:#EAE4D5;
+    background-image:linear-gradient(rgba(194,185,162,.45) 1px, transparent 1px), linear-gradient(90deg, rgba(194,185,162,.45) 1px, transparent 1px);
+    background-size:44px 44px}
+  .map-placeholder .ph{background:var(--panel); border:1px solid var(--line-2); border-radius:14px; padding:18px 22px; box-shadow:var(--shadow); max-width:280px}
+  .map-placeholder h3{font-family:var(--display); font-weight:600; font-size:17px; color:var(--ink); margin:8px 0 4px}
+  .map-placeholder p{margin:0; font-size:13px; color:var(--ink-soft)}
+
+  .empty{padding:40px 20px; text-align:center; color:var(--ink-faint); font-size:14px; border:1px dashed var(--line-2); border-radius:14px}
+
+  /* ---------- restaurant page (styled like the prototype's detail drawer) ---------- */
+  .detail{max-width:780px; padding-top:18px}
+  .back{display:inline-block; margin:0 0 12px; font-family:var(--mono); font-size:12px; color:var(--ink-soft); text-decoration:none}
+  .back:hover{color:var(--ink)}
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow); overflow:hidden}
+  .dhead{padding:22px 24px 16px; border-bottom:1px solid var(--line)}
+  .dhead h1{font-family:var(--display); font-weight:600; font-size:30px; margin:4px 0 6px; letter-spacing:-.015em; font-variation-settings:"opsz" 72; line-height:1.15}
+  .addr{font-family:var(--mono); font-size:12px; color:var(--ink-faint)}
+  .dbody{padding:22px 24px 30px}
+
+  .hero-scored{display:flex; gap:20px; align-items:center; margin-bottom:8px}
+  .hero-scored .placard{width:104px; height:120px; flex:none}
+  .hero-scored .placard .g{font-size:60px}
+  .hero-scored .about h4{font-family:var(--display); font-size:18px; margin:0 0 4px; font-weight:600}
+  .hero-scored .about p{margin:0; font-size:13px; color:var(--ink-soft)}
+  .asof{font-family:var(--mono); font-size:11px; color:var(--ink-faint); margin-top:6px}
+
+  .section-title{font-family:var(--mono); font-size:11px; letter-spacing:.13em; text-transform:uppercase; color:var(--ink-faint); margin:26px 0 10px; padding-bottom:6px; border-bottom:1px solid var(--line)}
+  table.factors{width:100%; border-collapse:collapse; font-size:13px}
+  table.factors td{padding:9px 6px; border-bottom:1px solid var(--line); vertical-align:top}
+  table.factors .code{font-family:var(--mono); font-size:11px; color:var(--ink-faint)}
+  table.factors .when{font-family:var(--mono); font-size:11px; color:var(--ink-faint); white-space:nowrap; text-align:right}
+  .repeat{display:inline-block; font-family:var(--mono); font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--g-d); border:1px solid var(--g-d); border-radius:4px; padding:1px 5px; margin-left:6px}
+  .quiet{font-size:13.5px; color:var(--ink-soft)}
+
+  .hero-pf{border:1px dashed var(--line-2); border-radius:14px; padding:20px; background:#F1EDE0}
+  .hero-pf .stamp-lg{display:inline-block; font-family:var(--mono); font-size:13px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; border:2px solid currentColor; border-radius:7px; padding:8px 12px; transform:rotate(-4deg)}
+  .hero-pf.pass{color:var(--g-a)} .hero-pf.fail{color:var(--g-d)} .hero-pf.unknown{color:var(--ink-faint)}
+  .hero-pf .headline{font-family:var(--display); font-weight:600; font-size:21px; color:var(--ink); margin:14px 0 6px; font-variation-settings:"opsz" 60}
+  .hero-pf .sub{font-size:13.5px; color:var(--ink-soft); margin:0}
+  .freshtag{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; padding:3px 8px; border-radius:999px; margin-left:8px; vertical-align:middle}
+  .freshtag.stale{background:#F3E9D6; color:var(--g-d)}
+  .freshtag.expired{background:#EDE7DA; color:var(--ink-faint)}
+  .notegrade{background:#F1EDE0; border-left:3px solid var(--g-a); padding:11px 13px; border-radius:0; font-size:12.5px; color:var(--ink-soft); margin-top:16px}
+  .disclaimer{font-size:11.5px; color:var(--ink-faint); margin-top:26px; line-height:1.5; border-top:1px solid var(--line); padding-top:14px}
+
+  footer.site{border-top:1px solid var(--line); padding:18px 0 36px; font-size:12px; color:var(--ink-faint)}
+
+  @@media (max-width:900px){
+    .split{grid-template-columns:1fr}
+    .mapcard{position:relative; top:0}
+    .map-placeholder{height:240px}
+    .results{max-height:none}
+  }
+  @@media (max-width:640px){
+    .searchfield, .searchfield .control{min-width:0; width:100%}
+    .count{margin-left:0}
+    .hero-scored{flex-direction:column; align-items:flex-start}
+  }
+  @@media (prefers-reduced-motion:reduce){
+    *{transition:none!important; animation:none!important}
+  }
+</style>
 </head>
 <body>
-    <header class="site">
-        <div class="wrap bar">
-            <a class="mark" href="/">clean<b>4</b>ork</a>
-            <nav><a href="/">Search</a></nav>
-        </div>
-    </header>
 
-    <main>@RenderBody()</main>
+<header class="masthead">
+  <div class="wrap row">
+    <a class="brand" href="/">
+      <span class="mark">clean<b>4</b>ork</span>
+      <span class="tag">Pennsylvania food inspections</span>
+    </a>
+    <nav class="top">
+      <a href="/">Search</a>
+      <a href="#">How grades work</a>
+      <a href="#">For restaurants</a>
+    </nav>
+  </div>
+</header>
 
-    <footer class="site">
-        <div class="wrap">
-            Clean4ork is a private company that reads public records. Grades are our analysis of
-            published inspection data, not official health department grades.
-        </div>
-    </footer>
+@RenderBody()
+
+<footer class="site">
+  <div class="wrap">
+    Clean4ork is a private company that reads public records. Grades are our analysis of published
+    inspection data, not official health department grades.
+  </div>
+</footer>
+
 </body>
 </html>

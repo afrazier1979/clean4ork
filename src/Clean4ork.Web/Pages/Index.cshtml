@@ -1,73 +1,112 @@
 @page
 @model IndexModel
 @{
-    ViewData["Title"] = "Clean4ork \u2014 Pennsylvania food inspections";
+    ViewData["Title"] = "Clean4ork \u2014 inspection grades near you";
 }
 
-<div class="wrap">
-  <form class="search" method="get" action="/">
-    <input type="text" name="Q" value="@Model.Q" placeholder="Search a restaurant by name" />
-    @if (!string.IsNullOrWhiteSpace(Model.Area))
-    {
-      <input type="hidden" name="area" value="@Model.Area" />
-    }
-    <button class="btn" type="submit">Search</button>
-  </form>
+<section class="searchbar">
+  <div class="wrap inner">
+    <form class="field searchfield" method="get" action="/">
+      <label for="q">Restaurant name</label>
+      <div class="control">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A8172" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input id="q" type="text" name="Q" value="@Model.Q" autocomplete="off" placeholder="Try &ldquo;Ferro&rsquo;s&rdquo; or &ldquo;Pizza&rdquo;" />
+        @if (!string.IsNullOrWhiteSpace(Model.Area)) { <input type="hidden" name="area" value="@Model.Area" /> }
+        @if (!string.IsNullOrWhiteSpace(Model.Show)) { <input type="hidden" name="show" value="@Model.Show" /> }
+        <button type="submit" class="go-btn">Search</button>
+      </div>
+    </form>
 
-  <div class="chips">
-    <a class="@(string.IsNullOrWhiteSpace(Model.Area) ? "on" : "")" href="@Model.Link(1, "")">All of PA</a>
-    <a class="@(Model.Area == "philly" ? "on" : "")" href="@Model.Link(1, "philly")">Philadelphia</a>
-    <a class="@(Model.Area == "pa" ? "on" : "")" href="@Model.Link(1, "pa")">Rest of PA</a>
+    <div class="field">
+      <label>Area</label>
+      <div class="radius">
+        <a class="@(string.IsNullOrWhiteSpace(Model.Area) ? "on" : "")" href="@Model.Link(1, area: "")">All PA</a>
+        <a class="@(Model.Area == "philly" ? "on" : "")" href="@Model.Link(1, area: "philly")">Philadelphia</a>
+        <a class="@(Model.Area == "pa" ? "on" : "")" href="@Model.Link(1, area: "pa")">Rest of PA</a>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Show</label>
+      <div class="filters">
+        <a class="chip tier @(Model.ShowGraded ? "on" : "")" href="@Model.Link(1, show: Model.ToggleGraded)">Graded</a>
+        <a class="chip tier @(Model.ShowPassFail ? "on" : "")" href="@Model.Link(1, show: Model.TogglePassFail)">Pass / fail</a>
+      </div>
+    </div>
+
+    <div class="count">
+      @(Model.TotalCount == 0 ? "No places" : $"{Model.FirstShown:N0}\u2013{Model.LastShown:N0} of {Model.TotalCount:N0} places")
+    </div>
   </div>
+</section>
 
-  <div class="count">
-    @if (Model.TotalCount > 0) { <text>Showing @Model.FirstShown.ToString("N0")&ndash;@Model.LastShown.ToString("N0") of </text> }
-    @Model.TotalCount.ToString("N0") result@(Model.TotalCount == 1 ? "" : "s")
-  </div>
+<main class="wrap">
+  <div class="split">
 
-  @if (Model.Results.Count == 0)
-  {
-    <div class="empty">No restaurants match that search.</div>
-  }
-  else
-  {
-    @foreach (var r in Model.Results)
-    {
-      <a class="card" href="/r/@r.Jurisdiction/@r.Slug">
-        @if (r.Tier == DataTier.Scored && r.Grade is char g)
+    <div class="results" aria-live="polite">
+      @if (Model.Results.Count == 0)
+      {
+        <div class="empty">No inspected places match. Try a different name or turn a filter back on.</div>
+      }
+      else
+      {
+        @foreach (var r in Model.Results)
         {
-          <div class="placard g@(char.ToLowerInvariant(g))"><span class="pl-letter">@g</span><span class="pl-cap">Grade</span></div>
+          <a class="card" href="/r/@r.Jurisdiction/@r.Slug">
+            @if (r.Tier == DataTier.Scored && r.Grade is char g)
+            {
+              <div class="placard g-@(char.ToLowerInvariant(g))"><div class="g">@g</div><div class="s">Grade</div></div>
+            }
+            else if (r.Passed is bool passed)
+            {
+              <div class="chit @(passed ? "pass" : "fail")">
+                <div class="stamp">@if (passed) { <text>Passed</text> } else { <text>Out of<br />compliance</text> }</div>
+                @if (r.InspectedOn is not null) { <div class="date">@r.InspectedOn</div> }
+              </div>
+            }
+            else
+            {
+              <div class="chit unknown"><div class="stamp">No result</div></div>
+            }
+            <div class="body">
+              <h3>@r.Name</h3>
+              <div class="meta">
+                @if (r.Address is not null) { <span>@r.Address</span> }
+                @if (r.Place is not null) { <span>@r.Place</span> }
+                <span class="tierflag">@(r.Tier == DataTier.Scored ? "Graded" : "Pass / fail")</span>
+              </div>
+              <div class="line">@r.Line</div>
+            </div>
+          </a>
         }
-        else if (r.Passed is bool passed)
-        {
-          <div class="chit @(passed ? "pass" : "fail")"><span class="chit-res">@(passed ? "Passed" : "Out of compliance")</span><span class="chit-cap">State record</span></div>
-        }
-        else
-        {
-          <div class="chit"><span class="chit-cap">No record</span></div>
-        }
-        <div class="info">
-          <div class="name">@r.Name</div>
-          <div class="meta">
-            @r.Address
-            @if (r.Place is not null) { <text> &middot; @r.Place</text> }
-          </div>
-          <div class="meta mono">
-            @if (r.Tier == DataTier.Scored) { <text>Graded from city inspection reports</text> }
-            else if (r.InspectedOn is not null) { <text>State inspection @r.InspectedOn</text> }
-            else { <text>No inspection on record</text> }
-          </div>
+      }
+
+      @if (Model.TotalPages > 1)
+      {
+        <nav class="pager">
+          @if (Model.PageNumber > 1) { <a href="@Model.Link(Model.PageNumber - 1)">&larr; Previous</a> } else { <span class="off">&larr; Previous</span> }
+          <span class="where">Page @Model.PageNumber.ToString("N0") of @Model.TotalPages.ToString("N0")</span>
+          @if (Model.PageNumber < Model.TotalPages) { <a href="@Model.Link(Model.PageNumber + 1)">Next &rarr;</a> } else { <span class="off">Next &rarr;</span> }
+        </nav>
+      }
+    </div>
+
+    <div class="mapcard">
+      <div class="caption">
+        <h2>Map</h2>
+        <div class="legend">
+          <span class="sw"><span class="dot" style="background:var(--g-a)"></span>graded</span>
+          <span class="sw"><span class="dot" style="background:#F0ECDF;border:1.5px dashed var(--line-2)"></span>pass/fail</span>
         </div>
-      </a>
-    }
-  }
+      </div>
+      <div class="map-placeholder">
+        <div class="ph">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2E6E67" stroke-width="2"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+          <h3>Map coming soon</h3>
+          <p>Restaurant pins and search by distance are on the way.</p>
+        </div>
+      </div>
+    </div>
 
-  @if (Model.TotalPages > 1)
-  {
-    <nav class="pager">
-      @if (Model.PageNumber > 1) { <a href="@Model.Link(Model.PageNumber - 1)">&larr; Previous</a> } else { <span class="off">&larr; Previous</span> }
-      <span class="where">Page @Model.PageNumber.ToString("N0") of @Model.TotalPages.ToString("N0")</span>
-      @if (Model.PageNumber < Model.TotalPages) { <a href="@Model.Link(Model.PageNumber + 1)">Next &rarr;</a> } else { <span class="off">Next &rarr;</span> }
-    </nav>
-  }
-</div>
+  </div>
+</main>
