@@ -18,12 +18,15 @@ public sealed class IngestService(
     IFacilityIndexSource facilityIndex,
     ILogger<IngestService> logger)
 {
+    /// <summary>Prefix of the synthetic IDs the PA open-data source assigns.</summary>
+    private const string OpenDataIdPrefix = "padata-";
+
     /// <summary>Apply EF migrations and ensure PostGIS is enabled. Safe to re-run.</summary>
     public async Task MigrateAsync(CancellationToken ct)
     {
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        logger.LogInformation("Applying migrations…");
+        logger.LogInformation("Applying migrations...");
         await db.Database.MigrateAsync(ct);
         // PostGIS extension is declared in the model (HasPostgresExtension) and
         // created by the migration; this is a belt-and-suspenders no-op if present.
@@ -33,9 +36,13 @@ public sealed class IngestService(
 
     /// <summary>
     /// Seed the statewide pass/fail tier from the open-data API. No scraping,
-    /// no parser — just an API pull. Never downgrades a Scored establishment.
+    /// no parser, just an API pull. Never downgrades a Scored establishment.
+    ///
+    /// Philadelphia is skipped entirely: the HealthSpace crawl is the complete,
+    /// authoritative source there, and the two sources use different facility
+    /// IDs, so loading both would list every Philly restaurant twice.
     /// </summary>
-        public async Task SeedPassFailAsync(CancellationToken ct)
+    public async Task SeedPassFailAsync(CancellationToken ct)
     {
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -47,8 +54,15 @@ public sealed class IngestService(
 
         var n = 0;
         var added = 0;
+        var skippedPhilly = 0;
         await foreach (var incoming in facilityIndex.EnumerateEstablishmentsAsync(ct))
         {
+            if (incoming.Jurisdiction == philly.Jurisdiction)
+            {
+                skippedPhilly++;
+                continue;
+            }
+
             // Name + ZIP is not unique (two Subways in one ZIP), so add a short,
             // stable suffix from the synthetic facility id to keep slugs unique.
             var id = incoming.SourceFacilityId;
@@ -89,7 +103,9 @@ public sealed class IngestService(
             }
         }
         await db.SaveChangesAsync(ct);
-        logger.LogInformation("Pass/fail seed complete: {N} rows processed, {Added} new restaurants", n, added);
+        logger.LogInformation(
+            "Pass/fail seed complete: {N} rows processed, {Added} new restaurants, {Skipped} Philadelphia rows skipped",
+            n, added, skippedPhilly);
     }
 
     private static void RefreshSnapshot(Establishment target, Establishment incoming)
@@ -110,10 +126,12 @@ public sealed class IngestService(
     /// <summary>
     /// Crawl Philadelphia (all ZIPs, or one if <paramref name="singleZip"/> is
     /// set), pulling full scoreable reports for each facility. Promotes rows to
-    /// Scored. This is the depth tier — the differentiator.
+    /// Scored. This is the depth tier, the differentiator.
     /// </summary>
     public async Task CrawlPhiladelphiaAsync(string? singleZip, CancellationToken ct)
     {
+        await RemoveOpenDataPhillyRowsAsync(ct);
+
         var report = new RosterCrawlReport();
 
         // Roster: either one ZIP (fast test) or the whole city (subdivided).
@@ -133,9 +151,10 @@ public sealed class IngestService(
                 roster.Add(row);
         }
 
-        logger.LogInformation("Roster: {Count} facilities. Fetching reports…", roster.Count);
+        logger.LogInformation("Roster: {Count} facilities. Fetching reports...", roster.Count);
 
         var processed = 0;
+        var failed = 0;
         foreach (var facility in roster)
         {
             ct.ThrowIfCancellationRequested();
@@ -145,18 +164,40 @@ public sealed class IngestService(
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
+                failed++;
                 logger.LogWarning(ex, "Failed to ingest facility {Id} ({Name})",
                     facility.FacilityId, facility.Name);
             }
 
             if (++processed % 25 == 0)
-                logger.LogInformation("…{Done}/{Total} facilities", processed, roster.Count);
+                logger.LogInformation("...{Done}/{Total} facilities ({Failed} failed)",
+                    processed, roster.Count, failed);
 
             // Politeness: a small pause between facilities. Slow is fine.
             await Task.Delay(TimeSpan.FromMilliseconds(750), ct);
         }
 
-        logger.LogInformation("Philadelphia crawl complete. {Report}", report);
+        logger.LogInformation("Philadelphia crawl complete. {Failed} failed. {Report}", failed, report);
+    }
+
+    /// <summary>
+    /// One-time cleanup, safe to re-run: deletes Philadelphia rows that came
+    /// from the state open-data feed. HealthSpace replaces them with complete,
+    /// scoreable records under the city's own facility IDs.
+    /// </summary>
+    private async Task RemoveOpenDataPhillyRowsAsync(CancellationToken ct)
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var removed = await db.Establishments
+            .Where(e => e.Jurisdiction == philly.Jurisdiction &&
+                        e.SourceFacilityId.StartsWith(OpenDataIdPrefix))
+            .ExecuteDeleteAsync(ct);
+
+        if (removed > 0)
+            logger.LogInformation(
+                "Removed {Count} Philadelphia rows from the state feed (HealthSpace replaces them)", removed);
     }
 
     /// <summary>
@@ -182,6 +223,11 @@ public sealed class IngestService(
                 logger.LogWarning("Could not parse establishment {Id}", facility.FacilityId);
                 return;
             }
+
+            // Name + ZIP is not unique (two Subways in one ZIP). Add a short,
+            // stable suffix from the city's facility ID so every slug is unique.
+            fetched.Slug = $"{fetched.Slug}-{ShortId(facility.FacilityId)}";
+
             fetched.DataTier = DataTier.Scored;
             db.Establishments.Add(fetched);
             db.InspectionEvents.Add(new InspectionEvent
@@ -216,4 +262,8 @@ public sealed class IngestService(
         existing.LastScrapedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
     }
+
+    /// <summary>First 8 letters/digits of a facility GUID, lowercased.</summary>
+    private static string ShortId(string facilityId) =>
+        new string(facilityId.Where(char.IsLetterOrDigit).Take(8).ToArray()).ToLowerInvariant();
 }
