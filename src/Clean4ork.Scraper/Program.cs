@@ -14,21 +14,20 @@ builder.Services.AddHttpClient<PhillyInspectionSource>(client =>
     })
     // The name/address search axis is stateful: the form POST sets a session
     // cookie that the follow-up page GETs require. Give this client its own
-    // cookie jar so that handshake works. (UseCookies defaults on, but we set
-    // an explicit container so the intent — and the per-client scope — is clear.)
+    // cookie jar so that handshake works.
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
     {
         CookieContainer = new System.Net.CookieContainer(),
         UseCookies = true,
         AllowAutoRedirect = true
     })
-    .AddStandardResilienceHandler(); // retries, circuit breaker, timeout — Polly under the hood
+    .AddStandardResilienceHandler(); // retries, circuit breaker, timeout (Polly under the hood)
 
 builder.Services.AddSingleton<IInspectionSource>(sp =>
     sp.GetRequiredService<PhillyInspectionSource>());
 
 // Statewide facility INDEX via the PA open-data (Socrata) API. This is the
-// breadth layer — discovery + geocoding + pass/fail — not scoreable depth.
+// breadth layer (discovery + geocoding + pass/fail), not scoreable depth.
 builder.Services.AddHttpClient<PaOpenDataFacilitySource>(client =>
     {
         client.Timeout = TimeSpan.FromSeconds(60);
@@ -51,10 +50,11 @@ builder.Services.AddSingleton<IngestService>();
 
 // CLI mode: `dotnet run -- <command>` runs one job and exits. With no command,
 // it runs as the always-on scheduled worker.
-//   seed-passfail   → ingest the statewide open-data pass/fail tier
-//   crawl-philly    → full ZIP-subdivision roster crawl + scoreable reports
-//   crawl-zip 19120 → crawl a single ZIP (fast test)
-//   migrate         → apply EF migrations + enable PostGIS, then exit
+//   migrate                → apply EF migrations + enable PostGIS, then exit
+//   seed-passfail          → ingest the (frozen, 2018-2020) state open-data pass/fail tier
+//   import-pda-csv <path>  → import a CSV exported from pafoodsafety.pa.gov
+//   crawl-philly           → full ZIP-subdivision roster crawl + scoreable reports
+//   crawl-zip 19120        → crawl a single ZIP (fast test)
 var command = args.FirstOrDefault();
 
 if (string.IsNullOrWhiteSpace(command))
@@ -80,6 +80,11 @@ try
         case "seed-passfail":
             await ingest.SeedPassFailAsync(CancellationToken.None);
             break;
+        case "import-pda-csv":
+            var csvPath = args.ElementAtOrDefault(1)
+                ?? throw new ArgumentException("usage: import-pda-csv <path-to-csv>");
+            await ingest.ImportPdaCsvAsync(csvPath, CancellationToken.None);
+            break;
         case "crawl-philly":
             await ingest.CrawlPhiladelphiaAsync(null, CancellationToken.None);
             break;
@@ -89,7 +94,7 @@ try
             await ingest.CrawlPhiladelphiaAsync(zip, CancellationToken.None);
             break;
         default:
-            log.LogError("Unknown command '{Command}'. Try: migrate | seed-passfail | crawl-philly | crawl-zip <zip>", command);
+            log.LogError("Unknown command '{Command}'. Try: migrate | seed-passfail | import-pda-csv <path> | crawl-philly | crawl-zip <zip>", command);
             Environment.ExitCode = 2;
             break;
     }
