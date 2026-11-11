@@ -3,7 +3,7 @@
 @model RestaurantModel
 @{
     var est = Model.Establishment!;
-    ViewData["Title"] = $"{est.Name} \u2014 Clean4ork";
+    ViewData["Title"] = $"{est.Name} — Clean4ork";
     var graded = !string.IsNullOrEmpty(Model.GradeLetter);
     var g = Model.GradeLetter ?? "";
     var phrase = g switch
@@ -18,7 +18,7 @@
 }
 
 <main class="wrap detail">
-  <a class="back" href="/">&larr; Back to search</a>
+  <a class="back" href="/search">&larr; Back to search</a>
 
   <article class="panel">
     <div class="dhead">

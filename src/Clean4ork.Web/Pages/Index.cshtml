@@ -1,112 +1,212 @@
 @page
 @model IndexModel
 @{
-    ViewData["Title"] = "Clean4ork \u2014 inspection grades near you";
+    ViewData["Title"] = "Clean4ork — Pennsylvania restaurant inspections, made readable";
 }
 
-<section class="searchbar">
-  <div class="wrap inner">
-    <form class="field searchfield" method="get" action="/">
-      <label for="q">Restaurant name</label>
-      <div class="control">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A8172" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input id="q" type="text" name="Q" value="@Model.Q" autocomplete="off" placeholder="Try &ldquo;Ferro&rsquo;s&rdquo; or &ldquo;Pizza&rdquo;" />
-        @if (!string.IsNullOrWhiteSpace(Model.Area)) { <input type="hidden" name="area" value="@Model.Area" /> }
-        @if (!string.IsNullOrWhiteSpace(Model.Show)) { <input type="hidden" name="show" value="@Model.Show" /> }
-        <button type="submit" class="go-btn">Search</button>
-      </div>
-    </form>
+<style>
+  .landing{padding-bottom:20px}
+  .hero{display:grid; grid-template-columns:1.15fr .85fr; gap:48px; align-items:center; padding:56px 0 48px}
+  .eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--g-a); margin:0 0 14px}
+  .hero h1{font-family:var(--display); font-weight:600; font-size:52px; line-height:1.04; letter-spacing:-.025em; margin:0 0 18px; font-variation-settings:"opsz" 144}
+  .hero h1 em{font-style:italic; color:var(--g-a)}
+  .lede{font-size:18px; color:var(--ink-soft); max-width:560px; margin:0 0 26px; line-height:1.55}
+  .hero-search{display:flex; gap:8px; max-width:520px; background:#FBF9F3; border:1px solid var(--line-2); border-radius:12px; padding:7px 7px 7px 14px; box-shadow:var(--shadow)}
+  .hero-search input{flex:1; border:0; background:transparent; font-family:var(--body); font-size:16px; color:var(--ink); outline:none; min-width:0}
+  .hero-search button{border:0; background:var(--g-a); color:#F4F1E8; border-radius:9px; padding:11px 18px; font-family:var(--body); font-size:15px; cursor:pointer}
+  .hero-search button:hover{filter:brightness(1.06)}
+  .hero-links{margin-top:14px; font-size:14px; color:var(--ink-faint)}
+  .hero-links a{color:var(--ink-soft)}
+  .stats{display:flex; gap:28px; margin-top:28px; flex-wrap:wrap}
+  .stat .n{font-family:var(--display); font-weight:600; font-size:28px; line-height:1}
+  .stat .l{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); margin-top:6px}
 
-    <div class="field">
-      <label>Area</label>
-      <div class="radius">
-        <a class="@(string.IsNullOrWhiteSpace(Model.Area) ? "on" : "")" href="@Model.Link(1, area: "")">All PA</a>
-        <a class="@(Model.Area == "philly" ? "on" : "")" href="@Model.Link(1, area: "philly")">Philadelphia</a>
-        <a class="@(Model.Area == "pa" ? "on" : "")" href="@Model.Link(1, area: "pa")">Rest of PA</a>
-      </div>
-    </div>
+  .samples{display:flex; flex-direction:column; gap:16px}
+  .samples .card{cursor:default}
+  .samples .card:hover{transform:none; box-shadow:var(--shadow)}
+  .sample-tag{font-family:var(--mono); font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-faint); text-align:right; margin-bottom:-6px}
 
-    <div class="field">
-      <label>Show</label>
-      <div class="filters">
-        <a class="chip tier @(Model.ShowGraded ? "on" : "")" href="@Model.Link(1, show: Model.ToggleGraded)">Graded</a>
-        <a class="chip tier @(Model.ShowPassFail ? "on" : "")" href="@Model.Link(1, show: Model.TogglePassFail)">Pass / fail</a>
-      </div>
-    </div>
+  .band{border-top:1px solid var(--line); padding:48px 0}
+  .band h2{font-family:var(--display); font-weight:600; font-size:30px; letter-spacing:-.015em; margin:0 0 8px}
+  .band .intro{color:var(--ink-soft); max-width:640px; margin:0 0 28px; font-size:16px}
+  .steps{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+  .step{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:20px; box-shadow:var(--shadow)}
+  .step .num{font-family:var(--mono); font-size:11px; color:var(--g-a); letter-spacing:.12em}
+  .step h3{font-family:var(--display); font-weight:600; font-size:19px; margin:8px 0 6px}
+  .step p{margin:0; font-size:14px; color:var(--ink-soft)}
 
-    <div class="count">
-      @(Model.TotalCount == 0 ? "No places" : $"{Model.FirstShown:N0}\u2013{Model.LastShown:N0} of {Model.TotalCount:N0} places")
-    </div>
-  </div>
-</section>
+  .tiers{display:grid; grid-template-columns:1fr 1fr; gap:18px}
+  .tierbox{display:flex; gap:18px; align-items:flex-start; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:20px; box-shadow:var(--shadow)}
+  .tierbox h3{font-family:var(--display); font-weight:600; font-size:20px; margin:0 0 6px}
+  .tierbox p{margin:0 0 8px; font-size:14px; color:var(--ink-soft)}
+  .tierbox .where{font-family:var(--mono); font-size:11px; letter-spacing:.06em; color:var(--ink-faint)}
+  .scale{display:flex; gap:6px; margin-top:6px}
+  .scale span{width:26px; height:30px; border-radius:6px; color:#F6F2E9; font-family:var(--display); font-weight:600; font-size:15px; display:flex; align-items:center; justify-content:center}
 
-<main class="wrap">
-  <div class="split">
+  .isnt{display:grid; grid-template-columns:1fr 1fr; gap:28px}
+  .isnt ul{margin:0; padding-left:18px; color:var(--ink-soft); font-size:15px}
+  .isnt li{margin-bottom:8px}
+  .isnt h3{font-family:var(--mono); font-size:11px; letter-spacing:.13em; text-transform:uppercase; color:var(--ink-faint); margin:0 0 10px; font-weight:500}
 
-    <div class="results" aria-live="polite">
-      @if (Model.Results.Count == 0)
-      {
-        <div class="empty">No inspected places match. Try a different name or turn a filter back on.</div>
-      }
-      else
-      {
-        @foreach (var r in Model.Results)
+  .cta{background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:34px; box-shadow:var(--shadow); display:flex; justify-content:space-between; align-items:center; gap:24px; flex-wrap:wrap}
+  .cta h2{margin:0 0 4px}
+  .cta p{margin:0; color:var(--ink-soft)}
+  .btn-main{display:inline-block; background:var(--g-a); color:#F4F1E8; text-decoration:none; border-radius:10px; padding:13px 20px; font-size:15px}
+  .btn-main:hover{filter:brightness(1.06)}
+
+  @@media (max-width:900px){
+    .hero{grid-template-columns:1fr; gap:32px; padding:36px 0}
+    .hero h1{font-size:38px}
+    .steps, .tiers, .isnt{grid-template-columns:1fr}
+  }
+</style>
+
+<div class="wrap landing">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div>
+      <p class="eyebrow">Pennsylvania restaurant inspections</p>
+      <h1>Know what the inspector <em>saw.</em></h1>
+      <p class="lede">
+        Every restaurant in Pennsylvania is inspected, and the results are public, but they're
+        buried in government websites and written in health-code shorthand. Clean4ork reads those
+        records and turns them into something you can understand at a glance.
+      </p>
+
+      <form class="hero-search" method="get" action="/search">
+        <input type="text" name="Q" placeholder="Search a restaurant by name" aria-label="Restaurant name" />
+        <button type="submit">Search</button>
+      </form>
+      <div class="hero-links">or <a href="/search">browse all restaurants</a> &middot; <a href="#how">how it works</a></div>
+
+      <div class="stats">
+        <div class="stat"><div class="n">@Model.TotalPlaces.ToString("N0")</div><div class="l">Restaurants on record</div></div>
+        @if (Model.GradedPlaces > 0)
         {
-          <a class="card" href="/r/@r.Jurisdiction/@r.Slug">
-            @if (r.Tier == DataTier.Scored && r.Grade is char g)
-            {
-              <div class="placard g-@(char.ToLowerInvariant(g))"><div class="g">@g</div><div class="s">Grade</div></div>
-            }
-            else if (r.Passed is bool passed)
-            {
-              <div class="chit @(passed ? "pass" : "fail")">
-                <div class="stamp">@if (passed) { <text>Passed</text> } else { <text>Out of<br />compliance</text> }</div>
-                @if (r.InspectedOn is not null) { <div class="date">@r.InspectedOn</div> }
-              </div>
-            }
-            else
-            {
-              <div class="chit unknown"><div class="stamp">No result</div></div>
-            }
-            <div class="body">
-              <h3>@r.Name</h3>
-              <div class="meta">
-                @if (r.Address is not null) { <span>@r.Address</span> }
-                @if (r.Place is not null) { <span>@r.Place</span> }
-                <span class="tierflag">@(r.Tier == DataTier.Scored ? "Graded" : "Pass / fail")</span>
-              </div>
-              <div class="line">@r.Line</div>
-            </div>
-          </a>
+          <div class="stat"><div class="n">@Model.GradedPlaces.ToString("N0")</div><div class="l">With a Clean4ork grade</div></div>
         }
-      }
-
-      @if (Model.TotalPages > 1)
-      {
-        <nav class="pager">
-          @if (Model.PageNumber > 1) { <a href="@Model.Link(Model.PageNumber - 1)">&larr; Previous</a> } else { <span class="off">&larr; Previous</span> }
-          <span class="where">Page @Model.PageNumber.ToString("N0") of @Model.TotalPages.ToString("N0")</span>
-          @if (Model.PageNumber < Model.TotalPages) { <a href="@Model.Link(Model.PageNumber + 1)">Next &rarr;</a> } else { <span class="off">Next &rarr;</span> }
-        </nav>
-      }
-    </div>
-
-    <div class="mapcard">
-      <div class="caption">
-        <h2>Map</h2>
-        <div class="legend">
-          <span class="sw"><span class="dot" style="background:var(--g-a)"></span>graded</span>
-          <span class="sw"><span class="dot" style="background:#F0ECDF;border:1.5px dashed var(--line-2)"></span>pass/fail</span>
-        </div>
-      </div>
-      <div class="map-placeholder">
-        <div class="ph">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2E6E67" stroke-width="2"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
-          <h3>Map coming soon</h3>
-          <p>Restaurant pins and search by distance are on the way.</p>
-        </div>
+        <div class="stat"><div class="n">67</div><div class="l">Counties covered</div></div>
       </div>
     </div>
 
-  </div>
-</main>
+    <div class="samples" aria-label="Examples of how results look">
+      <div class="sample-tag">Example</div>
+      <div class="card">
+        <div class="placard g-a"><div class="g">A</div><div class="s">Grade</div></div>
+        <div class="body">
+          <h3>Reliquary Coffee</h3>
+          <div class="meta"><span>Center City</span><span class="tierflag">Graded</span></div>
+          <div class="line">Graded from city inspection reports</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="placard g-c"><div class="g">C</div><div class="s">Grade</div></div>
+        <div class="body">
+          <h3>Nine Lives Noodle</h3>
+          <div class="meta"><span>Chinatown</span><span class="tierflag">Graded</span></div>
+          <div class="line">A repeat handwashing violation on record</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="chit pass"><div class="stamp">Passed</div><div class="date">Feb 2, 2026</div></div>
+        <div class="body">
+          <h3>Ardmore Alehouse</h3>
+          <div class="meta"><span>Ardmore</span><span class="tierflag">Pass / fail</span></div>
+          <div class="line">Passed its most recent state inspection</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="band" id="how">
+    <h2>How it works</h2>
+    <p class="intro">We don't inspect restaurants. Health inspectors do. We read what they publish and make it readable.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="num">01</div>
+        <h3>We read the public record</h3>
+        <p>We gather published inspection reports from Pennsylvania's health departments, including every violation the inspector wrote down.</p>
+      </div>
+      <div class="step">
+        <div class="num">02</div>
+        <h3>We weigh what matters</h3>
+        <p>A violation that can make people sick counts far more than a housekeeping issue. Repeat problems count more. Older inspections count less.</p>
+      </div>
+      <div class="step">
+        <div class="num">03</div>
+        <h3>You see it plainly</h3>
+        <p>One letter grade, the specific violations behind it, and a link back to the official record so you can check our work.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- TWO KINDS OF RESULTS -->
+  <section class="band">
+    <h2>Two kinds of results</h2>
+    <p class="intro">Not every part of Pennsylvania publishes the same level of detail, so you'll see two kinds of results. We never dress one up as the other.</p>
+    <div class="tiers">
+      <div class="tierbox">
+        <div class="placard g-a" style="flex:none"><div class="g">A</div><div class="s">Grade</div></div>
+        <div>
+          <h3>Graded</h3>
+          <p>Where full inspection reports are published, we read every violation and give a Clean4ork letter grade from A to F.</p>
+          <div class="scale">
+            <span class="g-a">A</span><span class="g-b">B</span><span class="g-c">C</span><span class="g-d">D</span><span class="g-f">F</span>
+          </div>
+          <p class="where" style="margin-top:10px">Philadelphia &middot; grades rolling out now</p>
+        </div>
+      </div>
+      <div class="tierbox">
+        <div class="chit pass" style="flex:none"><div class="stamp">Passed</div></div>
+        <div>
+          <h3>Pass / fail</h3>
+          <p>Elsewhere the state publishes only whether a restaurant passed. We show that result and its date, with no letter, because there isn't enough detail to grade fairly.</p>
+          <p>Older records are clearly labeled, so you always know how recent the information is.</p>
+          <p class="where">Rest of Pennsylvania &middot; state records</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHAT IT IS / ISN'T -->
+  <section class="band">
+    <h2>What a Clean4ork grade is, and isn't</h2>
+    <div class="isnt" style="margin-top:20px">
+      <div>
+        <h3>It is</h3>
+        <ul>
+          <li>Our independent reading of public inspection records</li>
+          <li>Based only on what inspectors actually wrote down</li>
+          <li>Tied to specific violations you can see for yourself</li>
+          <li>Updated as new inspections are published</li>
+        </ul>
+      </div>
+      <div>
+        <h3>It isn't</h3>
+        <ul>
+          <li>An official health department grade or rating</li>
+          <li>A review of the food, service, or atmosphere</li>
+          <li>A statement about what's happening in the kitchen today</li>
+          <li>A substitute for the official record, which we always link to</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- CALL TO ACTION -->
+  <section class="band">
+    <div class="cta">
+      <div>
+        <h2>Look up a restaurant</h2>
+        <p>Search by name, or browse every inspected place in Pennsylvania.</p>
+      </div>
+      <a class="btn-main" href="/search">Search restaurants &rarr;</a>
+    </div>
+    <p class="disclaimer" style="margin-top:26px">
+      Own a restaurant? Tools for claiming your listing and monitoring your inspections are coming soon.
+    </p>
+  </section>
+
+</div>
